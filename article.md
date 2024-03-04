@@ -61,7 +61,7 @@ There are occassions where sentences in CJK languages will be fewer tokens than 
 
 ### Korean Hangul and Tokenization
 
-So far we've focused mostly on Japanese Kanji and Chinese. In the Korean writing system, the 28 basic letters consonants and vowels are combined into a single syllabic symbol. In Unicode, over 11,000 precomposed syllabic symbols are defined in the [Unicode Standard AC00 block](https://unicode.org/charts/PDF/UAC00.pdf). This Unicode block has over precomposed syllables so that text processors to not need to combine Hangul vowels and consonants into a single symbol. Because BPE works with Unicode code points, not with the Hangul letters the frequency of that syllable is more important to the component letters. For example, the first syllable in my name "An" is two tokens for 앤 and seven tokens for it's component letters, "ㅇㅐㄴ":
+So far we've focused mostly on Japanese Kanji and Chinese. In the Korean writing system, the 14 basic  consonants and 10 vowels are combined into a single syllabic symbol. In Unicode, over 11,000 precomposed syllabic symbols are defined in the [Unicode Standard AC00 block](https://unicode.org/charts/PDF/UAC00.pdf). This Unicode block has over precomposed syllables so that text processors to not need to combine Hangul vowels and consonants into a single symbol. Because BPE works with Unicode code points, not with the Hangul letters the frequency of that syllable is more important to the component letters. For example, the first syllable in my name, "An" is two tokens for 앤 and seven tokens for it's component letters, "ㅇㅐㄴ":
 
 ```python
 >>> enc.encode("앤")
@@ -70,7 +70,7 @@ So far we've focused mostly on Japanese Kanji and Chinese. In the Korean writing
 [70787, 229, 70787, 238, 159, 226, 112]
 ```
 
-In summary, although Hangul is an elegant writing system, the [complexity of the Unicode implementation](https://www.unicode.org/L2/L2006/06310-hangul-decompose9.pdf) impacts the token density. You would think that with 28 basic letters, Korean would have a better token density to Japanese which has 2 writing systems and thousands of characters, but instead the opposite is true. 
+In summary, although Hangul is an elegant writing system, the [complexity of the Unicode implementation](https://www.unicode.org/L2/L2006/06310-hangul-decompose9.pdf) impacts the token density. You would think that with 40 basic letters, Korean would have a better token density to Japanese which has 2 writing systems and thousands of characters, but instead the opposite is true. Expect a ratio of 2.36x the number of tokens for Korean than the equivalent information in English. 
 
 ### Summary and recommendations
 
