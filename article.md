@@ -52,16 +52,16 @@ To better understand how the density of information-to-tokens, we looked a datas
 
 ![Token Ratio of Translated Sentences to English Sentences](images/translation_ratio.png)
 
-For a language like Japanese that has both Kanji and Kana, sentences can be up to 8x the number of tokens of the English equivalent, but average at 2.12.
+For a language like Japanese that has both Kanji and Kana, sentences can be up to 8x the number of tokens of the English equivalent, but average at 2.12x.
 
-Mandarin has an average token ratio of 1.76, Cantonese has 2.10 and Korean 2.36. 
+Mandarin has an average token ratio of 1.76, Cantonese has 2.10, and Korean 2.36. 
 
 There are occassions where sentences in CJK languages will be fewer tokens than the English equivalent because the expression or phase can be said more concisely. For example, "This is the first time I've heard about it." (11 tokens) can be said in Japanese 
-"初耳だ" (5 tokens). These cases are the exception, not the rule and it could be argued that a native English speaker would use a more colloqial term like "news to me" (3 tokens).
+"初耳だ" (5 tokens). These cases are the exception, not the rule and it could be argued that a native English speaker would use a more colloqial term like "news to me" (3 tokens) which is why it is important to look at hand-written translations by native speakers instead of machine-translated. Ensure you are also comparing like-for-like with formal and informal text.
 
 ### Korean Hangul and Tokenization
 
-So far we've focused mostly on Japanese Kanji and Chinese. In the Korean writing system, the 14 basic  consonants and 10 vowels are combined into a single syllabic symbol. In Unicode, over 11,000 precomposed syllabic symbols are defined in the [Unicode Standard AC00 block](https://unicode.org/charts/PDF/UAC00.pdf). This Unicode block has over precomposed syllables so that text processors to not need to combine Hangul vowels and consonants into a single symbol. Because BPE works with Unicode code points, not with the Hangul letters the frequency of that syllable is more important to the component letters. For example, the first syllable in my name, "An" is two tokens for 앤 and seven tokens for it's component letters, "ㅇㅐㄴ":
+So far we've focused mostly on Japanese Kanji and Chinese. In the Korean writing system, the 14 basic  consonants and 10 vowels are combined into a single syllabic symbol. In Unicode, over 11,000 precomposed syllabic symbols are defined in the [Unicode Standard AC00 block](https://unicode.org/charts/PDF/UAC00.pdf). This Unicode block has over precomposed syllables so that text processors to not need to combine Hangul vowels and consonants into a single symbol. Because BPE works with Unicode code points, not with the Hangul letters the frequency of that syllable is more important to the component letters. For example, the first syllable in my name in Korean, "An" (앤) is two tokens for 앤 and seven tokens for it's component letters, "ㅇㅐㄴ":
 
 ```python
 >>> enc.encode("앤")
@@ -71,15 +71,6 @@ So far we've focused mostly on Japanese Kanji and Chinese. In the Korean writing
 ```
 
 In summary, although Hangul is an elegant writing system, the [complexity of the Unicode implementation](https://www.unicode.org/L2/L2006/06310-hangul-decompose9.pdf) impacts the token density. You would think that with 40 basic letters, Korean would have a better token density to Japanese which has 2 writing systems and thousands of characters, but instead the opposite is true. Expect a ratio of 2.36x the number of tokens for Korean than the equivalent information in English. 
-
-### Summary and recommendations
-
-
-- Ideagraphic text
-- Working with mixed language text
-- Japanese specifics
-- Assumptions about
-- Ruby character https://en.wikipedia.org/wiki/Ruby_character
 
 ## Text Analysis
 
@@ -94,5 +85,45 @@ In summary, although Hangul is an elegant writing system, the [complexity of the
 ## Special considerations for document procesing
 
 - Working with PDFS
-- Top-to-bottom 
-    - MS word support
+
+### Right-to-left text layout
+
+All CJK languages have a historical layout where text is written in columns and read top-to-bottom and right-to-left. Large Language Models predict the **next** token in a string of text based on the probability. This doesn't change with top to bottom layout but you do need to pay special consideration to how the text is processed from a file format. 
+
+Microsoft Word for example has a [Text Layout option](https://support.microsoft.com/office/using-right-to-left-languages-in-office-17d8a34d-36d6-49ad-b765-257cb7cd22e2) where text can be written in a top to bottom orientation. When using the .DOCX format, each column is stored as a paragraph and typically no punctuation is used to mark the end of a column:
+
+![Screenshot of Word for Mac with column layout](images/word_screenshot.png)
+
+When reading top to bottom orientation from Python, the results depend on what format the file was stored. If the file is retained in DOCX format you can use any OpenXML parser, like [python-docx](https://github.com/python-openxml/python-docx) to read the file and iterate through the paragraphs.
+
+```python
+>>> import docx
+>>> doc = docx.Document('top to bottom.docx')
+>>> for para in doc.paragraphs:
+...   print(para.text)
+... 
+
+かくばかり
+波風あらき
+沖なれど
+ほのかに
+見ゆる
+いさり火の影
+```
+
+Unlike left-to-right paragraphs where text will be one or many sentences, top to bottom orientiation will be a paragraph per sentence so you may want to merge the paragraphs with a period before embedding.
+
+If the document is stored as PDF, results will vary dramatically between the tool used to create the PDF and the library used to read the PDF. You will find that most PDF libraries will extract the text either in the wrong order (left to right), or in the right order but with a line break between each character:
+
+```python
+>>> import pypdf
+>>> reader = pypdf.PdfReader(open('TopToBottom_Test.pdf', 'rb'))
+>>> reader.pages[0].extract_text()
+' \nか\nく\nば\nか\nり 波\n風\nあ\nら\nき 沖\nな\nれ\nど ほ\nの\nか\nに 見\nゆ\nる い\nさ\nり\n火\nの\n影 \n '
+```
+
+If possible, retain documents in OpenXML format or a format that specifically supports top to bottom orientation before extracting text.
+
+## Summary and recommendations
+
+- When working with CJK you need to factor in roughly twice the number of tokens to text than you would with English.
