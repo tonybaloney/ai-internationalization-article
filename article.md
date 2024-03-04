@@ -1,7 +1,6 @@
 
 # Working with Chinese, Japanese, and Korean text in Generative AI pipelines
 
-
 Large Language Models (LLMs) have been trained to predict the next part of a word, or "token", based on a training model of huge volumes of written text mostly from public Internet sources. Because English is the most widely spoken [language on the Internet](https://www.statista.com/statistics/262946/most-common-languages-on-the-internet/), LLMs are optimized to perform well in challenges with English.
 
 LLMs have advanced capabilities for handling and generative text in many written languages. Azure AI Studio has a [model catalog](https://learn.microsoft.com/azure/ai-studio/how-to/model-catalog) for exploring and comparing many models as well as giving you the ability to deploy them directly onto Azure.
@@ -22,9 +21,11 @@ The number of tokens is relevant for two reasons:
 1. LLM APIs are billable by the number of tokens, not by the number of letters or words. All API limits and throttling is configured to tokens.
 2. The recall performance of LLMs is impacted by the number of input tokens, to a sweet-spot depending on the model. Ideally, LLMs should be given a smaller "context window" from which to derive facts and information. 
 
-So, for those two reasons we greatly care about the number of tokens for a piece of text.
+For example, the OpenAI embedding model `text-embedding-ada-002` takes [a maximum number of 8191 tokens](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#embeddings-models). OpenAI GPT4-Turbo takes a [maximum of 128,000 tokens as input and gives a maximum of 4906 tokens as output](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#gpt-4-and-gpt-4-turbo-preview-models).
 
-The BPE encoding for GPT 3.5 and GPT 4 is the cl100k_base, which has roughly 100,000 tokens. Each token is a mapping to a word, or part of a word and a unique number. In `cl100k_base`, the message "This is the life" is 4 tokens, "This" (2028) " is" (374) " the" (279) and " life" (2324). Unlike embeddings, tokenized strings are bidirectional so you can convert text into tokens and back again without losing information. You can try this in Python for GPT-3.5 and GPT-4 encodings using the `tiktoken` package:
+So, for those two reasons we pay more attention to the number of tokens for a piece of text than the number of characters or words when working with LLMs.
+
+The BPE encoding for GPT 3.5 and GPT 4 is the `cl100k_base`, which has roughly 100,000 tokens. Each token is a mapping to a word, or part of a word and a unique number. In `cl100k_base`, the message "This is the life" is 4 tokens, "This" (2028) " is" (374) " the" (279) and " life" (2324). Unlike embeddings, tokenized strings are bidirectional so you can convert text into tokens and back again without losing information. You can try this in Python for GPT-3.5 and GPT-4 encodings using the `tiktoken` package:
 
 ```python
 >>> import tiktoken
