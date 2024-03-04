@@ -5,16 +5,16 @@ Large Language Models (LLMs) have been trained to predict the next part of a wor
 
 LLMs have advanced capabilities for handling and generative text in many written languages. Azure AI Studio has a [model catalog](https://learn.microsoft.com/azure/ai-studio/how-to/model-catalog) for exploring and comparing many models as well as giving you the ability to deploy them directly onto Azure.
 
-In this article we explore some best practices for handling text in Chinese, Japanese, and Korean with LLMs. This guidance applies to the following scenarios:
+In this article we explore some best practices for handling text in Chinese, Japanese, and Korean (CJK) with LLMs. This guidance applies to the following scenarios:
 
+- Working with text mode LLMs with written CJK text
 - Processing of text for vector-based, or semantic search
 - Splitting or chunking text for storage in a vector database
-- Reading text from documents for processing
-- Working with text mode LLMs with written CJK text
+- Reading text from documents for processing by LLMs
 
 ## Tokenization
 
-Before text can be processed by an LLM it needs to be converted from a text string into an array of numbers called *tokens*. The mapping between the word, or part of a word and the token is calculated using an algorithm called a Byte-Pair-Encoder (BPE). The BPE algorithm works with an encoding and iterates through a piece of text to find way of representing that text with the fewest number of tokens. 
+Before text can be processed by an LLM it needs to be converted from a text string into an array of numbers called *tokens*. The mapping between the word, or subword and the token is calculated using an algorithm called a Byte-Pair-Encoder (BPE). The BPE algorithm works with an encoding and iterates through a piece of text to find way of representing that text with the fewest number of tokens. There are alternative subword tokenizers, like [Unigram tokenizers](https://huggingface.co/docs/transformers/main/en/tokenizer_summary#unigram) but for this article we will focus on BPE as it is the most popular for OpenAI GPT 3.5 and GPT 4 related models. 
 
 The number of tokens is relevant for two reasons: 
 
@@ -79,8 +79,12 @@ In summary, although Hangul is an elegant writing system, the [complexity of the
 
 ## Text splitting
 
+When dealing with text inputs to an LLM, whether for an embedding model or for a completions model you have a limit on the number of input tokens. A common use case for embeddings models is to convert blocks of text into embeddings (or vectors) and then use a similarity algorithm to find similar text. This is particularly useful for semantic search. Azure AI Search offers this feature with both [Vector Search](https://learn.microsoft.com/azure/search/vector-search-ranking) and [Semantic Search](https://learn.microsoft.com/azure/search/semantic-search-overview). For both technologies there is a limit to the number of input tokens that can be vectorized in the input model. There is also a "sweet spot" for the number of documents or tokens to use with completion models for the relevance of the similarity results. Even though embedding models support thousands of input tokens, [research shows](https://techcommunity.microsoft.com/t5/ai-azure-ai-services-blog/azure-ai-search-outperforming-vector-search-with-hybrid/ba-p/3929167) that recall performance drops off when you add more text. Think of it as presenting a 48-slide PowerPoint presentation and asking the audience to remember the 5 most important things, versus a short and snappy 5 slides with clear points.  
+
+Because written text doesn't come nicely packaged in 512 token chunks, you have to break the text up before you create embeddings to vectorize data.
+
 - General overlapping rules
-- JIS 2004 character endings and breaks
+The original JIS X 4051 standard is now maintained in the [W3C Text Layout document](https://www.w3.org/TR/jlreq/) character endings and breaks
 - Token based recursive splitters
 
 ## Special considerations for document procesing
@@ -128,3 +132,4 @@ If possible, retain documents in OpenXML format or a format that specifically su
 ## Summary and recommendations
 
 - When working with CJK you need to factor in roughly twice the number of tokens to text than you would with English.
+- Look for 
