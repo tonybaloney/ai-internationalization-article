@@ -36,18 +36,20 @@ The BPE encoding for GPT 3.5 and GPT 4 is the `cl100k_base`, which has roughly 1
 'This is the life'
 ```
 
-This particular byte-pair-coding has 100,000 possible tokens for every written language which is possible by assigning words or parts of words which occur frequently (like "This") their own token. Words and spelling mistakes can also be tokenized using parts of words as tokens. A misspelling like "Thiss" is 2 tokens, "Th" and "iss". Each letter in the Latin Alphabet has its own token, so the number of tokens would never exceed the number of characters for English. A general rule of thumb is that one token corresponds to around 4 characters of text for common English text.
+The `cl100k_base` byte-pair-coding has 100,000 possible tokens to cater for every written language including alphabet writing systems like English, French, German as well as [logosyllabary writing systems](https://www.unicode.org/versions/Unicode15.0.0/ch06.pdf) like those used in Chinese, Japanese, and Korean. Words or parts of words which occur frequently (like "This") have been assigned their own token based on a probabilistic compression technique. The goal of Byte-Pair-Encoding is to encode common text into the fewest number of tokens. Words and spelling mistakes can also be tokenized using parts of words as tokens. A misspelling like "Thiss" is 2 tokens, "Th" and "iss". Each letter in the Latin Alphabet has its own token, so the number of tokens would never exceed the number of characters for English. A general rule of thumb is that one token corresponds to around 4 characters of text for common English text.
 
-Because CJK languages do not use the Latin alphabet, we need to consider a different ratio of words to tokens. 
+Because CJK languages do not use the Latin alphabet, we need to consider a different ratio of words to tokens.
 
-A good example is the character used in both Chinese (Māo) and Japanese (Neko) for cat (猫). The 猫 character part of the Unicode CJK Unified Ideographs which includes over 97,000 characters. Since the cl100k_base encoding only has space for ~100,000 possible tokens the CJK Unified Ideographs alone would take up most space, so most characters are 2 or 3 tokens. Encoded into cl100k_base, the 猫 character becomes 3 tokens:
+A good example is the character used in both Chinese (Māo) and Japanese (Neko) for cat (猫). The 猫 character is part of the Unicode CJK Unified Ideographs. As of Unicode 15.1 this includes over 97,000 characters. Since the cl100k_base encoding only has space for ~100,000 possible tokens the CJK Unified Ideographs alone would take up most space, so most characters are 2 or 3 tokens. For example, the 猫 character encoded into `cl100k_base`, becomes 3 tokens:
 
 ```python
 >>> enc.encode("猫")
 [163, 234, 104]
 ```
 
-More commonly used characters like 三 (3 in both Chinese and Japanese) are only one token (46091). In some cases the character represents a concept like "Memorize" far more concisely. The character for memorize is 覚 (2 tokens) whereas the word "Memorize" is 3 tokens.
+These three tokens are not human-readable characters and have **no** relation to the component parts of the character 猫　(犭, 艹, and 田) or the strokes.
+
+Commonly used characters like 三 (3 in both Chinese and Japanese) are only one token (46091). In some cases the ideographic character represents a concept like "Memorize" with fewer tokens than the English equivalent word, but this is unusual. For example, the character for memorize is 覚 (2 tokens) whereas the word "Memorize" is 3 tokens.
 
 To better understand how the density of information-to-tokens, we looked a dataset of over 2 million translated sentences and measured the ratio of tokens between English and the target language. As a baseline, the most widely spoken Indo-European languages that also use the Latin Alphabet (French, German, Italian, Portuguese, and Spanish) were included:
 
@@ -73,15 +75,79 @@ So far we've focused mostly on Japanese Kanji and Chinese. In the Korean writing
 
 In summary, although Hangul is an elegant writing system, the [complexity of the Unicode implementation](https://www.unicode.org/L2/L2006/06310-hangul-decompose9.pdf) impacts the token density. You would think that with 40 basic letters, Korean would have a better token density to Japanese which has 2 writing systems and thousands of characters, but instead the opposite is true. Expect a ratio of 2.36x the number of tokens for Korean than the equivalent information in English. 
 
-## Text Analysis
-
-- Stemming and Lemmatization
-
-## Text splitting
+## Text Splitting
 
 When dealing with text inputs to an LLM, whether for an embedding model or for a completions model you have a limit on the number of input tokens. A common use case for embeddings models is to convert blocks of text into embeddings (or vectors) and then use a similarity algorithm to find similar text. This is particularly useful for semantic search. Azure AI Search offers this feature with both [Vector Search](https://learn.microsoft.com/azure/search/vector-search-ranking) and [Semantic Search](https://learn.microsoft.com/azure/search/semantic-search-overview). For both technologies there is a limit to the number of input tokens that can be vectorized in the input model. There is also a "sweet spot" for the number of documents or tokens to use with completion models for the relevance of the similarity results. Even though embedding models support thousands of input tokens, [research shows](https://techcommunity.microsoft.com/t5/ai-azure-ai-services-blog/azure-ai-search-outperforming-vector-search-with-hybrid/ba-p/3929167) that recall performance drops off when you add more text. Think of it as presenting a 48-slide PowerPoint presentation and asking the audience to remember the 5 most important things, versus a short and snappy 5 slides with clear points.  
 
 Because written text doesn't come nicely packaged in 512 token chunks, you have to break the text up before you create embeddings to vectorize data.
+
+### Text Splitting Strategies
+
+When you are working with an LLM with a maximum input size smaller than the amount of data you have, you need to split up the text into chunks. For example, in a search-based RAG application large documents in a search index are broken into smaller pieces so that they can be scanned and searched quickly. 
+
+Text splitters work by looking for meaningful chunks, such as pages, paragraphs, or sentences. A 100-page document could be split into all the paragraphs, and if some of those paragraphs were larger than the maximum chunk size, they could be split again using sentences as the separator.
+
+There are two commonly used types of splitters for use with LLMs. Character splitters, which split on the number of characters and look for a logical end to a sentence, like a full-stop. Then there are token splitters, which encode the text and break it into chunks based on the number of tokens. Both approaches have challenges with CJK text which we will explore with examples. 
+
+#### Character Splitters
+
+Character splitters work on a target number of characters per chunk and a separator or list of separators to use for splitting. For example, Langchain's [CharacterTextSplitter](https://python.langchain.com/docs/modules/data_connection/document_transformers/character_text_splitter) splits on a single separator, defaulting to a double line-break (commonly found in paragraph separators):
+
+```python
+from langchain_text_splitters import CharacterTextSplitter
+
+text_splitter = CharacterTextSplitter(
+    separator="\n\n",
+    chunk_size=300,
+    chunk_overlap=0,
+    length_function=len,
+)
+```
+
+Despite the chunk size being set to 100 characters in this example, if the paragraphs are beyond 100 characters this splitter will yield results beyond 100. Instead, recursive character splitters like [RecursiveCharacterSplitter](https://python.langchain.com/docs/modules/data_connection/document_transformers/recursive_text_splitter) work by inspecting the length of the chunks and if the chunk is too large, splitting again. This technique is useful when combined with the approximation that 3 characters are roughly 1 token for English text. So you could efficiently split text into 100 token chunks by setting a maximum chunk size of 300 characters:
+
+```python
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=300,
+    chunk_overlap=0,
+    length_function=len,
+    is_separator_regex=False,
+)
+```
+
+Recursive text splitters like Langchain's take a list of separators, instead of one. By default, most recursive text splitters will use full stop, question marks, exclamation points and spaces. 
+
+There are two challenges when using recursive text splitters with CJK text. The first major challenge is the ratio of tokens to text varies greatly between languages in the BPE. It is very difficult to set a target chunk size in characters when the LLM inputs are measured in number of tokens.
+
+The second challenge
+
+#### Token Splitters
+
+Another approach is to split chunks based on the number of tokens. These splitters work by encoding the text into a single token stream and then breaking the stream into chunks at the specified length with optional overlapping.
+
+For example, Langchain's [tiktoken splitter](https://python.langchain.com/docs/modules/data_connection/document_transformers/split_by_token#tiktoken) will split exactly at the specified boundary. For example if you set a chunk size of 500 tokens, you can break a piece of text into those chunks:
+
+```python
+from langchain_text_splitters import TokenTextSplitter
+import tiktoken
+
+with open('test_ja.txt', encoding='utf-8') as f:
+    input_text = f.read()
+
+bpe = tiktoken.encoding_for_model('gpt-4')
+text_splitter = TokenTextSplitter(model_name="gpt-4", chunk_size=500, chunk_overlap=0)
+texts = text_splitter.split_text(input_text)
+for text in texts:
+    print("Tokens={0}, Characters={1}, Text={2}".format(len(bpe.encode(text)), len(text), text))
+    print("---")
+```
+
+A benefit of this approach is that chunks will be at exactly the number of specified tokens. However, a **major** downside with this approach when used with CJK text is that chunks can be split in the middle of a character because characters can be multiple tokens. Using token based splitters directly will yield unexpected results as the beginning and end of some chunks will be illegible fragments of Unicode characters.
+
+### Identifying Separators
+
+* Note about spaces
+* Note about sentence endings
 
 - General overlapping rules
 The original JIS X 4051 standard is now maintained in the [W3C Text Layout document](https://www.w3.org/TR/jlreq/) character endings and breaks
