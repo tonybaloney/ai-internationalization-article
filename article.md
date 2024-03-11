@@ -25,7 +25,7 @@ For example, the OpenAI embedding model `text-embedding-ada-002` takes [a maximu
 
 So, for those two reasons we pay more attention to the number of tokens for a piece of text than the number of characters or words when working with LLMs.
 
-The BPE encoding for GPT 3.5 and GPT 4 is the `cl100k_base`, which has roughly 100,000 tokens. Each token is a mapping to a word, or part of a word and a unique number. In `cl100k_base`, the message "This is the life" is 4 tokens, "This" (2028) " is" (374) " the" (279) and " life" (2324). Unlike embeddings, tokenized strings are bidirectional so you can convert text into tokens and back again without losing information. You can try this in Python for GPT-3.5 and GPT-4 encodings using the `tiktoken` package:
+The BPE encoding for GPT 3.5 and GPT 4 is the `cl100k_base`, which has roughly 100,000 tokens. Each token is a mapping to a word, or part of a word and a unique number. In `cl100k_base`, the message "This is the life" is 4 tokens, "This" (2028) " is" (374) " the" (279) and " life" (2324). Unlike embeddings, tokenized strings are bidirectional, so you can convert text into tokens and back again without losing information. You can try this in Python for GPT-3.5 and GPT-4 encodings using the `tiktoken` package:
 
 ```python
 >>> import tiktoken
@@ -36,18 +36,18 @@ The BPE encoding for GPT 3.5 and GPT 4 is the `cl100k_base`, which has roughly 1
 'This is the life'
 ```
 
-This particular byte-pair-coding has 100,000 possible tokens for every written language which is possible by assigning words or parts of words which occur frequently (like "This") their own token. Words and mispellings can also be tokenized using parts of words as tokens. A mispelling like "Thiss" is 2 tokens, "Th" and "iss". Each letter in the Latin Alphabet has it's own token so the never of tokens would never exceed the number of characters for English. A general rule of thumb is that one token corresponds to around 4 characters of text for common English text.
+This particular byte-pair-coding has 100,000 possible tokens for every written language which is possible by assigning words or parts of words which occur frequently (like "This") their own token. Words and spelling mistakes can also be tokenized using parts of words as tokens. A misspelling like "Thiss" is 2 tokens, "Th" and "iss". Each letter in the Latin Alphabet has its own token, so the number of tokens would never exceed the number of characters for English. A general rule of thumb is that one token corresponds to around 4 characters of text for common English text.
 
-Because CJK languages do not use the latin alphabet, we need to consider a different ratio of words to tokens. 
+Because CJK languages do not use the Latin alphabet, we need to consider a different ratio of words to tokens. 
 
-A good example is the character used in both Chinese (Māo) and Japanese (Neko) for cat (猫). The 猫 character part of the Unicode CJK Unified Ideographs which includes over 97,000 characters. Since the cl100k_base encoding only has space for ~100,000 possible tokens the the CJK Unified Ideographs alone would take up most of space so most characters are 2 or 3 tokens. Encoded into cl100k_base, the 猫 character becomes 3 tokens:
+A good example is the character used in both Chinese (Māo) and Japanese (Neko) for cat (猫). The 猫 character part of the Unicode CJK Unified Ideographs which includes over 97,000 characters. Since the cl100k_base encoding only has space for ~100,000 possible tokens the CJK Unified Ideographs alone would take up most space, so most characters are 2 or 3 tokens. Encoded into cl100k_base, the 猫 character becomes 3 tokens:
 
 ```python
 >>> enc.encode("猫")
 [163, 234, 104]
 ```
 
-More commonly used characters like 三 (3 in both Chinese and Japanese) are only one token (46091). In some cases the character represents a concept like "Memorize" far more concisely. The character for memorise is 覚 (2 tokens) whereas the word "Memorize" is 3 tokens.
+More commonly used characters like 三 (3 in both Chinese and Japanese) are only one token (46091). In some cases the character represents a concept like "Memorize" far more concisely. The character for memorize is 覚 (2 tokens) whereas the word "Memorize" is 3 tokens.
 
 To better understand how the density of information-to-tokens, we looked a dataset of over 2 million translated sentences and measured the ratio of tokens between English and the target language. As a baseline, the most widely spoken Indo-European languages that also use the Latin Alphabet (French, German, Italian, Portuguese, and Spanish) were included:
 
@@ -57,12 +57,12 @@ For a language like Japanese that has both Kanji and Kana, sentences can be up t
 
 Mandarin has an average token ratio of 1.76, Cantonese has 2.10, and Korean 2.36. 
 
-There are occassions where sentences in CJK languages will be fewer tokens than the English equivalent because the expression or phase can be said more concisely. For example, "This is the first time I've heard about it." (11 tokens) can be said in Japanese 
-"初耳だ" (5 tokens). These cases are the exception, not the rule and it could be argued that a native English speaker would use a more colloqial term like "news to me" (3 tokens) which is why it is important to look at hand-written translations by native speakers instead of machine-translated. Ensure you are also comparing like-for-like with formal and informal text.
+There are occasions where sentences in CJK languages will be fewer tokens than the English equivalent because the expression or phase can be said more concisely. For example, "This is the first time I've heard about it." (11 tokens) can be said in Japanese 
+"初耳だ" (5 tokens). These cases are the exception, not the rule, and it could be argued that a native English speaker would use a more colloquial term like "news to me" (3 tokens) which is why it is important to look at handwritten translations by native speakers instead of machine-translated. Ensure you are also comparing like-for-like with formal and informal text.
 
 ### Korean Hangul and Tokenization
 
-So far we've focused mostly on Japanese Kanji and Chinese. In the Korean writing system, the 14 basic  consonants and 10 vowels are combined into a single syllabic symbol. In Unicode, over 11,000 precomposed syllabic symbols are defined in the [Unicode Standard AC00 block](https://unicode.org/charts/PDF/UAC00.pdf). This Unicode block has over precomposed syllables so that text processors to not need to combine Hangul vowels and consonants into a single symbol. Because BPE works with Unicode code points, not with the Hangul letters the frequency of that syllable is more important to the component letters. For example, the first syllable in my name in Korean, "An" (앤) is two tokens for 앤 and seven tokens for it's component letters, "ㅇㅐㄴ":
+So far we've focused mostly on Japanese Kanji and Chinese. In the Korean writing system, the 14 basic consonants and 10 vowels are combined into a single syllabic symbol. In Unicode, over 11,000 precomposed syllabic symbols are defined in the [Unicode Standard AC00 block](https://unicode.org/charts/PDF/UAC00.pdf). This Unicode block has over precomposed syllables so that text processors to not need to combine Hangul vowels and consonants into a single symbol. Because BPE works with Unicode code points, not with the Hangul letters the frequency of that syllable is more important to the component letters. For example, the first syllable in my name in Korean, "An" (앤) is two tokens for 앤 and seven tokens for its component letters, "ㅇㅐㄴ":
 
 ```python
 >>> enc.encode("앤")
@@ -93,7 +93,7 @@ The original JIS X 4051 standard is now maintained in the [W3C Text Layout docum
 
 ### Right-to-left text layout
 
-All CJK languages have a historical layout where text is written in columns and read top-to-bottom and right-to-left. Large Language Models predict the **next** token in a string of text based on the probability. This doesn't change with top to bottom layout but you do need to pay special consideration to how the text is processed from a file format. 
+All CJK languages have a historical layout where text is written in columns and read top-to-bottom and right-to-left. Large Language Models predict the **next** token in a string of text based on the probability. This doesn't change with top to bottom layout, but you do need to pay special consideration to how the text is processed from a file format. 
 
 Microsoft Word for example has a [Text Layout option](https://support.microsoft.com/office/using-right-to-left-languages-in-office-17d8a34d-36d6-49ad-b765-257cb7cd22e2) where text can be written in a top to bottom orientation. When using the .DOCX format, each column is stored as a paragraph and typically no punctuation is used to mark the end of a column:
 
@@ -116,7 +116,7 @@ When reading top to bottom orientation from Python, the results depend on what f
 いさり火の影
 ```
 
-Unlike left-to-right paragraphs where text will be one or many sentences, top to bottom orientiation will be a paragraph per sentence so you may want to merge the paragraphs with a period before embedding.
+Unlike left-to-right paragraphs where text will be one or many sentences, top to bottom orientation will be a paragraph per sentence, so you may want to merge the paragraphs with a period before embedding.
 
 If the document is stored as PDF, results will vary dramatically between the tool used to create the PDF and the library used to read the PDF. You will find that most PDF libraries will extract the text either in the wrong order (left to right), or in the right order but with a line break between each character:
 
