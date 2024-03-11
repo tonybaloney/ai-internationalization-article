@@ -29,7 +29,6 @@ for text in texts:
 
 print("Recursive Character splitting")
 text_splitter = RecursiveCharacterTextSplitter(
-    # Set a really small chunk size, just to show.
     separators=[".", "。", "!", "！", "?", "？", ",", "、", "\n\n"],
     chunk_size=100,
     chunk_overlap=0,

@@ -111,7 +111,6 @@ text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=300,
     chunk_overlap=0,
     length_function=len,
-    is_separator_regex=False,
 )
 ```
 
@@ -119,7 +118,19 @@ Recursive text splitters like Langchain's take a list of separators, instead of 
 
 There are two challenges when using recursive text splitters with CJK text. The first major challenge is the ratio of tokens to text varies greatly between languages in the BPE. It is very difficult to set a target chunk size in characters when the LLM inputs are measured in number of tokens.
 
-The second challenge
+The second challenge is that Chinese and Japanese written languages have different written separators for text. Korean uses spaces between words and the standard full stop (`.`) character for the end of sentences. Neither Japanese or Chinese (simplified or traditional) use spaces between words and the Unicode characters for the end of sentences differs to those in Latin Alphabet based languages. For example, the character `。` is more commonly used in Japanese than `.` to mark the end of a sentence.
+
+These differences are documented in the W3C [Requirements for Japanese Text Layout](https://www.w3.org/TR/jlreq/), a more up-to-date version of the [JIS X 4051](https://standards.globalspec.com/std/1206038/JIS%20X%204051) standard for specifying layouts with Japanese text. In this document there are a list of characters for brackets and parenthesis as well as sentence endings. When using recursive character splitters, we recommend overriding the list of separators to include these symbols. The following example is illustrative and not an exaustive list:
+
+```python
+text_splitter = RecursiveCharacterTextSplitter(
+    # Add additional JIS X 4051 characters as required
+    separators=[".", "。", "!", "！", "?", "？", ",", "、", " ", "\n\n"],
+    chunk_size=300,
+    chunk_overlap=0,
+    length_function=len,
+)
+```
 
 #### Token Splitters
 
@@ -144,14 +155,13 @@ for text in texts:
 
 A benefit of this approach is that chunks will be at exactly the number of specified tokens. However, a **major** downside with this approach when used with CJK text is that chunks can be split in the middle of a character because characters can be multiple tokens. Using token based splitters directly will yield unexpected results as the beginning and end of some chunks will be illegible fragments of Unicode characters.
 
-### Identifying Separators
+### Hybrid Splitters
 
-* Note about spaces
-* Note about sentence endings
+
+
+### Overlapping Best Practice
 
 - General overlapping rules
-The original JIS X 4051 standard is now maintained in the [W3C Text Layout document](https://www.w3.org/TR/jlreq/) character endings and breaks
-- Token based recursive splitters
 
 ## Special considerations for document procesing
 
