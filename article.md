@@ -3,7 +3,7 @@
 
 Large Language Models (LLMs) have been trained to predict the next part of a word, or "token", based on a training model of huge volumes of written text mostly from public Internet sources. Because English is the most widely spoken [language on the Internet](https://www.statista.com/statistics/262946/most-common-languages-on-the-internet/), LLMs are optimized to perform well in challenges with English.
 
-LLMs have advanced capabilities for handling and generative text in many written languages. Azure AI Studio has a [model catalog](https://learn.microsoft.com/azure/ai-studio/how-to/model-catalog) for exploring and comparing many models as well as giving you the ability to deploy them directly onto Azure.
+LLMs have advanced capabilities for handling and generating text in many written languages. Azure AI Studio has a [model catalog](https://learn.microsoft.com/azure/ai-studio/how-to/model-catalog) for exploring and comparing many models as well as giving you the ability to deploy them directly onto Azure.
 
 In this article we explore some best practices for handling text in Chinese, Japanese, and Korean (CJK) with LLMs. This guidance applies to the following scenarios:
 
